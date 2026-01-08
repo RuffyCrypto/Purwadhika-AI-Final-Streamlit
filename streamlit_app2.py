@@ -1,94 +1,41 @@
 import streamlit as st
 import requests
 
-# ================= CONFIG =================
-API_URL = "http://127.0.0.1:8000/chat"
+BACKEND_URL = "https://olist-backend-420147884504.asia-southeast1.run.app"
 
 st.set_page_config(
-    page_title="Olist Analytics AI",
-    page_icon="🛒",
-    layout="wide"
+    page_title="Olist Capstone",
+    layout="centered"
 )
 
-# ================= HEADER =================
-st.title("🛒 Olist Analytics AI")
-st.caption(
-    "Multi-Agent Analytics System (SQL • RAG • Seller Performance)"
+st.title("📦 Olist Capstone Project")
+st.caption("Streamlit frontend • Google Cloud Run backend")
+
+query = st.text_area(
+    "Enter your question",
+    placeholder="Apa kategori yang tersedia di dataset?"
 )
 
-st.divider()
-
-# ================= SIDEBAR =================
-st.sidebar.header("📌 Demo Capabilities")
-
-st.sidebar.markdown("""
-**SQL Analytics**
-- Rata-rata harga per kategori  
-- Daftar kategori produk  
-
-**RAG (Review Analysis)**
-- Produk / kategori dengan ulasan positif  
-
-**Seller Performance**
-- Perbandingan performa seller antar kota  
-""")
-
-st.sidebar.divider()
-
-st.sidebar.markdown("""
-**Contoh Pertanyaan**
-- Ada kategori apa saja di dataset?
-- Harga rata rata dari produk kategori furniture?
-- Produk apa yang paling sering direview positif?
-- Bandingkan performa seller di São Paulo dan Rio de Janeiro
-""")
-
-# ================= INPUT =================
-st.subheader("💬 Ajukan Pertanyaan")
-
-query = st.text_input(
-    "Masukkan pertanyaan Anda:",
-    placeholder="Contoh: Bandingkan performa seller di São Paulo dan Rio de Janeiro"
-)
-
-ask = st.button("🔍 Jalankan Analisis")
-
-# ================= RESPONSE =================
-if ask and query:
-    with st.spinner("Memproses pertanyaan..."):
-        try:
-            response = requests.post(
-                API_URL,
-                json={"query": query},
-                timeout=30
-            )
-
-            if response.status_code != 200:
-                st.error(
-                    f"❌ Backend error ({response.status_code})"
+if st.button("Submit"):
+    if not query.strip():
+        st.warning("Please enter a query")
+    else:
+        with st.spinner("Processing..."):
+            try:
+                res = requests.post(
+                    f"{BACKEND_URL}/chat",
+                    json={"query": query},
+                    timeout=30
                 )
-            else:
-                answer = response.json().get("answer")
 
-                st.success("✅ Jawaban berhasil dihasilkan")
-                st.markdown("### 📊 Hasil Analisis")
-                st.write(answer)
+                if res.status_code == 200:
+                    data = res.json()
+                    st.success("Response")
+                    st.write(data["answer"])
+                else:
+                    st.error(f"Backend error ({res.status_code})")
+                    st.text(res.text)
 
-        except requests.exceptions.ConnectionError:
-            st.error(
-                "❌ Tidak dapat terhubung ke backend FastAPI.\n\n"
-                "Pastikan backend sudah dijalankan:\n"
-                "`uvicorn app_updated:app`"
-            )
-
-        except Exception as e:
-            st.error(f"❌ Terjadi kesalahan: {e}")
-
-elif ask and not query:
-    st.warning("⚠️ Silakan masukkan pertanyaan terlebih dahulu.")
-
-# ================= FOOTER =================
-st.divider()
-st.caption(
-    "Capstone Project — Generative AI & Multi-Agent System | Olist Dataset"
-)
+            except requests.exceptions.RequestException as e:
+                st.error("Cannot connect to backend")
+                st.text(e)
